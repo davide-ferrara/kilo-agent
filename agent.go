@@ -188,6 +188,7 @@ func (a *Agent) handleToolCall(toolCalls []ToolCall, out chan<- Message) {
 			"write_file":   "✍️",
 			"pwd":          "📍",
 			"ls":           "📁",
+			"exec_cmd":     "⚡",
 		}[tool]
 		if emoji == "" {
 			emoji = "🔧"
@@ -239,6 +240,19 @@ func (a *Agent) handleToolCall(toolCalls []ToolCall, out chan<- Message) {
 			toolResult = Pwd()
 		case "ls":
 			toolResult = Ls()
+		case "exec_cmd":
+			var args struct {
+				Name string `json:"name"`
+				Args string `json:"args"`
+			}
+			if len(toolCalls[i].Function.Arguments) > 0 {
+				if err := json.Unmarshal(toolCalls[i].Function.Arguments, &args); err != nil {
+					log.Println("parse args: ", err)
+					toolResult = "Error: invalid arguments"
+					break
+				}
+			}
+			toolResult = ExecCmd(args.Name, args.Args)
 		default:
 			log.Println("name: ", tool)
 			toolResult = "No tools for that!"

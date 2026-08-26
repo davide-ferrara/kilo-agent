@@ -2,8 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"math/rand"
 	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 	"time"
@@ -93,6 +95,24 @@ func RegisterTools() []Tool {
 
 	tools = append(tools, writeFileTool)
 
+	execCmdTool := Tool{
+		Type: "function",
+		Function: ToolFunction{
+			Name: "exec_cmd",
+			Description: "Execute a system command and return its output",
+			Parameters: json.RawMessage(`{
+				"type": "object",
+				"properties": {
+					"name": {"type": "string", "description": "The command to execute"},
+					"args": {"type": "string", "description": "The arguments for the command"}
+				},
+				"required": ["name", "args"]
+			}`),
+		},
+	}
+
+	tools = append(tools, execCmdTool)
+
 	return tools
 }
 
@@ -151,4 +171,17 @@ func WriteFile(path string, content string) string {
 		return err.Error()
 	}
 	return "success"
+}
+
+// FIX: This is not secure.
+func ExecCmd(name string, args string) string {
+	cmd := exec.Command(name, args)
+	if errors.Is(cmd.Err, exec.ErrDot) {
+		cmd.Err = nil
+	}
+	out, err := cmd.Output()
+	if err != nil {
+		return "could not run command: "
+	}
+	return  string(out)
 }

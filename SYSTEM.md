@@ -15,6 +15,7 @@
 - pwd: Returns the current working directory
 - ls: List the entries (files and directories) in the current working directory
 - write_file: Write content to a file at the given path
+- exec_cmd: Execute a system command and return its output
 
 ## Tool Calling
 
