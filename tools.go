@@ -175,7 +175,8 @@ func WriteFile(path string, content string) string {
 
 // FIX: This is not secure.
 func ExecCmd(name string, args ...string) string {
-	cmd := exec.Command(name, args...)
+	allArgs := append([]string{"30", name}, args...)
+	cmd := exec.Command("timeout", allArgs...)
 	if errors.Is(cmd.Err, exec.ErrDot) {
 		cmd.Err = nil
 	}
@@ -183,5 +184,5 @@ func ExecCmd(name string, args ...string) string {
 	if err != nil {
 		return "tool exec_cmd error: " + err.Error()
 	}
-	return  string(out)
+	return string(out)
 }
