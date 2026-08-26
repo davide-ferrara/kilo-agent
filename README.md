@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="kilo-agent.png" alt="Kilo-Agent" width="80%" />
+  <img src="kilo-agent.png?v=2" alt="Kilo-Agent" width="80%" />
 </p>
 
 <h1 align="center">Kilo-Agent</h1>
@@ -62,6 +62,6 @@ go test ./...
 
 ## Disclaimer
 
-> [!DANGER]
+> [!CAUTION]
 > This is a **work in progress** agent blueprint. Use it at your own risk!
 > It's more of a conversation starter than a production tool.
