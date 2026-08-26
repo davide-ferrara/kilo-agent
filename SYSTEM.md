@@ -15,7 +15,7 @@
 - pwd: Returns the current working directory
 - ls: List the entries (files and directories) in the current working directory
 - write_file: Write content to a file at the given path
-- exec_cmd: Execute a system command and return its output
+- exec_cmd: Execute a system command with arguments and return its output
 
 ## Tool Calling
 
@@ -25,3 +25,10 @@
 - If you are asked to read a repository you need to read every file in the
   your current working dir. Use the `ls` command then call `read_file` tool
   for each file.
+
+## Terminal commands
+
+- Always remember you can use the tool `exec_cmd` to execute terminal commands.
+- If you need to find a word you can use the `grep` command.
+  Example: `grep -r "flower" .` search recursively the word flower in all files
+  of the current working directory.

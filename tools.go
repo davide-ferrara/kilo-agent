@@ -104,7 +104,7 @@ func RegisterTools() []Tool {
 				"type": "object",
 				"properties": {
 					"name": {"type": "string", "description": "The command to execute"},
-					"args": {"type": "string", "description": "The arguments for the command"}
+					"args": {"type": "array", "items": {"type": "string"}, "description": "The arguments for the command"}
 				},
 				"required": ["name", "args"]
 			}`),
@@ -174,14 +174,14 @@ func WriteFile(path string, content string) string {
 }
 
 // FIX: This is not secure.
-func ExecCmd(name string, args string) string {
-	cmd := exec.Command(name, args)
+func ExecCmd(name string, args ...string) string {
+	cmd := exec.Command(name, args...)
 	if errors.Is(cmd.Err, exec.ErrDot) {
 		cmd.Err = nil
 	}
 	out, err := cmd.Output()
 	if err != nil {
-		return "could not run command: "
+		return "tool exec_cmd error: " + err.Error()
 	}
 	return  string(out)
 }

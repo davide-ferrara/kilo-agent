@@ -21,3 +21,14 @@ func TestExec(t *testing.T) {
 		t.Fatal("Command output do not match.")
 	}
 }
+
+func TestExecGrep(t *testing.T) {
+	cmd := exec.Command("/usr/bin/grep", "-r", "agent", ".")
+	if errors.Is(cmd.Err, exec.ErrDot) {
+		cmd.Err = nil
+	}
+	_ , err := cmd.Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+}

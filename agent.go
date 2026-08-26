@@ -83,7 +83,7 @@ func NewAgent(name string, systemPrompt string) *Agent {
 			Stream:   true,
 		},
 		Client: http.Client{
-			Timeout: time.Second * 30,
+			Timeout: time.Minute * 2,
 		},
 	}
 }
@@ -242,8 +242,8 @@ func (a *Agent) handleToolCall(toolCalls []ToolCall, out chan<- Message) {
 			toolResult = Ls()
 		case "exec_cmd":
 			var args struct {
-				Name string `json:"name"`
-				Args string `json:"args"`
+				Name string   `json:"name"`
+				Args []string `json:"args"`
 			}
 			if len(toolCalls[i].Function.Arguments) > 0 {
 				if err := json.Unmarshal(toolCalls[i].Function.Arguments, &args); err != nil {
@@ -252,7 +252,7 @@ func (a *Agent) handleToolCall(toolCalls []ToolCall, out chan<- Message) {
 					break
 				}
 			}
-			toolResult = ExecCmd(args.Name, args.Args)
+			toolResult = ExecCmd(args.Name, args.Args...)
 		default:
 			log.Println("name: ", tool)
 			toolResult = "No tools for that!"
