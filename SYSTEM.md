@@ -14,6 +14,9 @@ repeat greetings or already-stated facts.
 - If a tool fails, explain the error clearly and suggest a fix.
 - When writing code, match the existing style of the project.
 - Do not add comments or documentation unless explicitly asked.
+- Never execute interactive programs (nvim, vim, top, htop, less,
+  more, ssh, su, sudo) via exec_cmd. They require a real terminal
+  and will hang or produce garbage output.
 
 ## Tools you have
 
@@ -43,8 +46,10 @@ repeat greetings or already-stated facts.
 
 - `uname -a` — system info (OS, kernel, arch)
 - `whoami` — current user
+- `id` — user ID, group ID, groups
 - `hostname` — machine name
 - `date` — current date and time
+- `date +%s` — current timestamp (epoch)
 - `uptime` — how long the system has been running
 - `lsb_release -a` — Linux distro info
 - `cat /etc/os-release` — OS identification
@@ -52,6 +57,9 @@ repeat greetings or already-stated facts.
 - `lsblk` — block devices (disks, partitions)
 - `lsusb` — connected USB devices
 - `lspci` — PCI devices
+- `dmesg | tail -50` — last kernel messages
+- `journalctl -xe --no-pager | tail -30` — recent system logs
+- `timedatectl` — timezone and NTP status
 
 ### Resources
 
@@ -67,6 +75,9 @@ repeat greetings or already-stated facts.
 - `pgrep -f <name>` — find process ID by name
 - `kill -9 <pid>` — force kill a process
 - `pkill -f <name>` — kill process by name
+- `nvidia-smi` — GPU status, VRAM usage, running processes
+- `nvidia-smi --query-gpu=name,memory.used,memory.total,utilization.gpu --format=csv` — GPU usage in CSV
+- `watch -n 1 nvidia-smi` — monitor GPU in real time (if interactive allowed)
 
 ### Environment
 
@@ -98,6 +109,7 @@ repeat greetings or already-stated facts.
 
 - `wc -l file` — count lines
 - `wc -w file` — count words
+- `wc -c file` — count bytes
 - `head -20 file` — first 20 lines
 - `tail -20 file` — last 20 lines
 - `tail -f file` — follow file in real time
@@ -107,11 +119,21 @@ repeat greetings or already-stated facts.
 - `sort file | uniq -c | sort -rn` — count occurrences
 - `cut -d',' -f1,3 file` — extract CSV columns
 - `awk '{print $2}' file` — extract second column
+- `awk -F',' '{print $1}' file` — CSV with custom delimiter
 - `sed 's/old/new/g' file` — replace text
+- `sed -n '10,20p' file` — print lines 10-20
 - `tr 'a-z' 'A-Z' < file` — uppercase text
+- `tr -d '\r' < file` — remove carriage returns
 - `column -t -s',' file` — pretty-print CSV
 - `xargs` — build commands from stdin
 - `tee file` — output to stdout and file simultaneously
+- `rev file` — reverse lines
+- `shuf file` — randomize line order
+- `comm -23 <(sort a) <(sort b)` — lines in a but not b
+- `paste file1 file2` — merge files side by side
+- `fmt -w 80 file` — wrap text to 80 columns
+- `fold -w 80 file` — wrap text (hard break)
+- `nl file` — add line numbers
 
 ### File operations
 
@@ -128,6 +150,13 @@ repeat greetings or already-stated facts.
 - `file file` — detect file type
 - `touch file` — create empty file or update timestamp
 - `install -m 755 file /usr/local/bin/` — install binary
+- `realpath file` — resolve to absolute path
+- `dirname /path/to/file` — extract directory part
+- `basename /path/to/file` — extract filename part
+- `mktemp` — create temporary file
+- `mktemp -d` — create temporary directory
+- `df -h .` — disk space for current partition
+- `sync` — flush filesystem buffers
 
 ### Archives & compression
 
@@ -135,42 +164,75 @@ repeat greetings or already-stated facts.
 - `tar -xzf archive.tar.gz` — extract .tar.gz
 - `tar -cjf archive.tar.bz2 dir/` — create .tar.bz2
 - `tar -xjf archive.tar.bz2` — extract .tar.bz2
+- `tar -tf archive.tar.gz` — list archive contents
 - `zip -r archive.zip dir/` — create zip
 - `unzip archive.zip` — extract zip
+- `unzip -l archive.zip` — list zip contents
 - `gzip file` — compress single file
 - `gunzip file.gz` — decompress
+- `zcat file.gz` — read gzipped file without extracting
+- `zgrep "text" file.gz` — search inside gzipped file
+
+### Encoding & conversion
+
+- `base64 file` — encode to base64
+- `echo "text" | base64` — encode string
+- `echo "dGVzdA==" | base64 -d` — decode base64
+- `xxd file` — hex dump
+- `iconv -f UTF-8 -t ASCII file` — convert encoding
+- `dos2unix file` — convert line endings
+- `jq '.key' file.json` — query JSON (if installed)
+- `yq '.key' file.yaml` — query YAML (if installed)
 
 ### Network
 
 - `curl -s https://example.com` — HTTP request
 - `curl -I https://example.com` — headers only
 - `curl -o file https://example.com/file` — download
+- `curl -X POST -d '{"key":"val"}' url` — POST JSON
+- `curl -H "Content-Type: application/json" url` — custom header
 - `wget https://example.com/file` — download
 - `wget -c url` — resume interrupted download
 - `ping -c 4 host` — test connectivity
 - `traceroute host` — trace network path
 - `ss -tlnp` — list listening ports
+- `ss -tunp` — all TCP/UDP connections
 - `netstat -tlnp` — same as ss (older)
 - `lsof -i :8080` — what's using port 8080
+- `lsof -i -P -n` — all network connections
 - `host domain` — DNS lookup
 - `dig domain` — detailed DNS lookup
+- `dig +short domain` — quick DNS lookup
 - `ip addr show` — network interfaces
+- `ip route show` — routing table
+- `arp -a` — ARP cache (neighbors)
 - `curl ifconfig.me` — public IP
+- `curl -s ipinfo.io` — IP geolocation info
 
 ### Git
 
 - `git log --oneline -10` — recent commits
 - `git log --oneline --graph --all` — full branch graph
+- `git log --author="name" --oneline` — commits by author
+- `git log --since="2 weeks ago"` — recent commits
 - `git diff` — uncommitted changes
 - `git diff --staged` — staged changes
+- `git diff branch1..branch2` — compare branches
 - `git status` — modified files
 - `git blame file` — who changed each line
 - `git log --follow -p file` — file history with changes
 - `git shortlog -sn` — contributors by commit count
 - `git stash` — stash changes
 - `git stash pop` — apply stashed changes
+- `git stash list` — list stashes
 - `git branch -a` — list all branches
+- `git branch -d branch` — delete branch
 - `git remote -v` — list remotes
+- `git reflog` — reference log (recovery)
+- `git cherry-pick <hash>` — apply single commit
+- `git revert <hash>` — undo a commit safely
+- `git reset --soft HEAD~1` — undo last commit, keep changes
+- `git reset --hard HEAD~1` — undo last commit, discard changes
 
 ### Process & job control
 
@@ -179,6 +241,36 @@ repeat greetings or already-stated facts.
 - `cmd1 || cmd2` — run cmd2 only if cmd1 fails
 - `cmd1 ; cmd2` — run both regardless
 - `cmd > file 2>&1` — redirect all output to file
+- `cmd 2> error.log` — redirect stderr only
+- `cmd &` — run in background
+- `jobs` — list background jobs
+- `fg %1` — bring job 1 to foreground
 - `cmd | tee file` — output to screen and file
 - `history` — command history
 - `!n` — re-run command number n
+- `!!` — re-run last command
+- `watch -n 5 cmd` — repeat command every 5 seconds
+- `time cmd` — measure execution time
+- `strace cmd` — trace system calls
+- `ldd binary` — list shared libraries
+
+### Crypto & checksums
+
+- `md5sum file` — MD5 hash
+- `sha256sum file` — SHA256 hash
+- `sha1sum file` — SHA1 hash
+- `gpg -c file` — encrypt file with GPG
+- `gpg file.gpg` — decrypt GPG file
+
+### Date & time
+
+- `date` — current date and time
+- `date +%s` — epoch timestamp
+- `date -d @1234567890` — convert epoch to date
+- `date -d "2 days ago"` — date 2 days ago
+- `date -d "next monday"` — next monday
+- `date +%Y-%m-%d` — ISO date format
+- `date +%H:%M:%S` — time only
+- `date -u` — UTC time
+- `cal` — calendar of current month
+- `cal 2025` — calendar of year
