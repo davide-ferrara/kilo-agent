@@ -65,9 +65,3 @@ go test ./...
 > [!DANGER]
 > This is a **work in progress** agent blueprint. Use it at your own risk!
 > It's more of a conversation starter than a production tool.
-
----
-
-<p align="center">
-  <sub>Made with coffee and a bit of curiosity</sub>
-</p>
