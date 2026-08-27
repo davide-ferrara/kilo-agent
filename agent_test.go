@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+
+	"kilo-agent/tui"
 )
 
 type roundTripFunc func(*http.Request) (*http.Response, error)
@@ -28,14 +30,14 @@ func TestAskStreamsThinkingAndStoresAssistantResponse(t *testing.T) {
 		}, nil
 	})
 
-	out := make(chan Message, 4)
+	out := make(chan tui.Message, 4)
 	agent.Ask(ChatMessage{Role: RoleUser, Content: "Hi"}, out)
 	close(out)
 
 	var thinking strings.Builder
 	var output strings.Builder
 	for message := range out {
-		if message.MsgType == MsgThinking {
+		if message.MsgType == tui.MsgThinking {
 			thinking.WriteString(message.Data.(string))
 			continue
 		}
@@ -51,5 +53,23 @@ func TestAskStreamsThinkingAndStoresAssistantResponse(t *testing.T) {
 	last := agent.Session.Messages[len(agent.Session.Messages)-1]
 	if last.Role != RoleAssistant || last.Content != "Hello David" {
 		t.Fatalf("stored assistant message = %#v", last)
+	}
+}
+
+func TestAskProcessesFinalStreamRecordWithoutNewline(t *testing.T) {
+	agent := NewAgent("test", "system")
+	agent.Client.Transport = roundTripFunc(func(*http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(strings.NewReader(`{"message":{"role":"assistant","content":"complete"},"done":true}`)),
+			Header:     make(http.Header),
+		}, nil
+	})
+
+	out := make(chan tui.Message, 1)
+	agent.Ask(ChatMessage{Role: RoleUser, Content: "Hi"}, out)
+	message := <-out
+	if message.MsgType != tui.MsgResponse || message.Data != "complete" {
+		t.Fatalf("final stream record = %#v", message)
 	}
 }
