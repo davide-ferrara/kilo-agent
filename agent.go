@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"time"
 
+	"kilo-agent/telegram"
 	"kilo-agent/tui"
 )
 
@@ -72,18 +73,23 @@ type ResponseChat struct {
 }
 
 type Agent struct {
-	Name         string
-	SystemPrompt string
-	Session      Chat // TODO: Add Session obj
-	Client       http.Client
-	ContextSize  int
+	Name           string
+	Config         Config
+	SystemPrompt   string
+	Session        Chat // TODO: Add Session obj
+	Client         http.Client
+	TelegramClient *http.Client
+	ContextSize    int
+	telegramStart  *telegram.Start
 }
 
-func NewAgent(name string, systemPrompt string) *Agent {
+func NewAgent(config Config, systemPrompt string) *Agent {
 	return &Agent{
-		Name: name,
+		Name:         config.Name,
+		Config:       config,
+		SystemPrompt: systemPrompt,
 		Session: Chat{
-			Model:    "qwen3:14b",
+			Model:    "gemma4:12b",
 			Messages: []ChatMessage{{Role: RoleSystem, Content: systemPrompt}},
 			Tools:    RegisterTools(),
 			Stream:   true,
@@ -91,8 +97,20 @@ func NewAgent(name string, systemPrompt string) *Agent {
 		Client: http.Client{
 			Timeout: time.Minute * 2,
 		},
-		ContextSize: 32768,
+		TelegramClient: &http.Client{Timeout: 30 * time.Second},
+		ContextSize:    32768,
 	}
+}
+
+func (a *Agent) telegramBot() (*telegram.Bot, error) {
+	if a.Config.TelegramBotToken == "" {
+		return nil, errors.New("telegram bot is not configured")
+	}
+
+	return &telegram.Bot{
+		Token:  a.Config.TelegramBotToken,
+		Client: a.TelegramClient,
+	}, nil
 }
 
 // Run is the agent actor loop: it consumes prompts from reqChan and streams
@@ -213,14 +231,18 @@ func (a *Agent) handleToolCall(toolCalls []ToolCall, out chan<- tui.Message) {
 		tool := toolCalls[i].Function.Name
 
 		emoji := map[string]string{
-			"random_int":   "🎲",
-			"random_int_n": "🎲",
-			"read_file":    "🔨",
-			"write_file":   "✍️",
-			"pwd":          "📍",
-			"ls":           "📁",
-			"exec_cmd":     "⚡",
-			"web_search":   "🌐",
+			"telegram_is_bot_configured": "✈️",
+			"telegram_start_pairing":     "✈️",
+			"telegram_complete_pairing":  "✈️",
+			"telegram_send_message":      "✈️",
+			"random_int":                 "🎲",
+			"random_int_n":               "🎲",
+			"read_file":                  "🔨",
+			"write_file":                 "✍️",
+			"pwd":                        "📍",
+			"ls":                         "📁",
+			"exec_cmd":                   "⚡",
+			"web_search":                 "🌐",
 		}[tool]
 		if emoji == "" {
 			emoji = "🔧"
@@ -229,6 +251,24 @@ func (a *Agent) handleToolCall(toolCalls []ToolCall, out chan<- tui.Message) {
 
 		var toolResult string
 		switch tool {
+		case "telegram_is_bot_configured":
+			toolResult = a.TelegramIsBotConfigured()
+		case "telegram_start_pairing":
+			toolResult = a.TelegramStartPairing()
+		case "telegram_complete_pairing":
+			toolResult = a.TelegramCompletePairing()
+		case "telegram_send_message":
+			var args struct {
+				Text string `json:"text"`
+			}
+			if len(toolCalls[i].Function.Arguments) > 0 {
+				if err := json.Unmarshal(toolCalls[i].Function.Arguments, &args); err != nil {
+					log.Println("parse args: ", err)
+					toolResult = "Error: invalid arguments"
+					break
+				}
+			}
+			toolResult = a.TelegramSendMessage(args.Text)
 		case "random_int":
 			toolResult = RandomInt()
 		case "random_int_n":

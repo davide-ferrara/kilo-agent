@@ -15,10 +15,52 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"kilo-agent/telegram"
 )
 
 func RegisterTools() []Tool {
 	tools := []Tool{}
+	telegramIsBotConfiguredTool := Tool{
+		Type: "function",
+		Function: ToolFunction{
+			Name:        "telegram_is_bot_configured",
+			Description: "Check whether a Telegram bot token is configured for the agent.",
+		},
+	}
+
+	tools = append(tools, telegramIsBotConfiguredTool)
+	telegramStartPairingTool := Tool{
+		Type: "function",
+		Function: ToolFunction{
+			Name:        "telegram_start_pairing",
+			Description: "Create or return a Telegram pairing link. After calling this tool, show the link and end the response. Never call telegram_complete_pairing in the same turn.",
+		},
+	}
+	telegramCompletePairingTool := Tool{
+		Type: "function",
+		Function: ToolFunction{
+			Name:        "telegram_complete_pairing",
+			Description: "Complete Telegram pairing only after a later user message explicitly confirms they opened the link and pressed Start. Never call this in the same turn as telegram_start_pairing.",
+		},
+	}
+	telegramSendMessageTool := Tool{
+		Type: "function",
+		Function: ToolFunction{
+			Name:        "telegram_send_message",
+			Description: "Send a text message to the paired Telegram chat. If no chat is paired, start Telegram pairing first.",
+			Parameters: json.RawMessage(`{
+				"type": "object",
+				"properties": {
+					"text": {"type": "string", "description": "The text message to send"}
+				},
+				"required": ["text"]
+			}`),
+		},
+	}
+
+	tools = append(tools, telegramStartPairingTool, telegramCompletePairingTool, telegramSendMessageTool)
+
 	randomIntTool := Tool{
 		Type: "function",
 		Function: ToolFunction{
@@ -137,6 +179,79 @@ func RegisterTools() []Tool {
 	tools = append(tools, execCmdTool, webSearchTool)
 
 	return tools
+}
+
+func (a *Agent) TelegramIsBotConfigured() string {
+	if _, err := a.telegramBot(); err != nil {
+		return "Telegram bot is not configured. Set telegram_bot_token in config.json."
+	}
+	return "Telegram bot is configured and ready to use."
+}
+
+func (a *Agent) TelegramStartPairing() string {
+	if a.telegramStart != nil {
+		return "A Telegram pairing is already pending. Show this link to the user: " +
+			a.telegramStart.Url +
+			". Stop now and wait for the user to confirm they pressed Start before calling telegram_complete_pairing."
+	}
+
+	bot, err := a.telegramBot()
+	if err != nil {
+		return "Telegram bot is not configured. Set telegram_bot_token in config.json."
+	}
+
+	start, err := bot.Start()
+	if err != nil {
+		return "Could not start Telegram pairing: " + err.Error()
+	}
+	a.telegramStart = &start
+
+	return "Show this Telegram link to the user: " + start.Url +
+		". Stop now. Do not call another pairing tool in this turn. Wait for a later user message confirming they pressed Start, then call telegram_complete_pairing."
+}
+
+func (a *Agent) TelegramCompletePairing() string {
+	if a.telegramStart == nil {
+		return "Telegram pairing has not been started. Call telegram_start_pairing first."
+	}
+
+	bot, err := a.telegramBot()
+	if err != nil {
+		return "Telegram bot is not configured. Set telegram_bot_token in config.json."
+	}
+	updates, err := bot.GetUpdates()
+	if err != nil {
+		return "Could not retrieve Telegram updates: " + err.Error()
+	}
+	chatID, err := telegram.GetChatID(*a.telegramStart, updates)
+	if err != nil {
+		return "Telegram pairing is still waiting for the user. Tell them to open the existing pairing link and press Start, then end the response. Do not call another pairing tool in this turn."
+	}
+
+	updatedConfig := a.Config
+	updatedConfig.TelegramChatID = chatID
+	if err := saveConfig(updatedConfig); err != nil {
+		return "Found the Telegram chat, but could not save it: " + err.Error()
+	}
+
+	a.Config = updatedConfig
+	a.telegramStart = nil
+	return "Telegram chat paired successfully."
+}
+
+func (a *Agent) TelegramSendMessage(text string) string {
+	bot, err := a.telegramBot()
+	if err != nil {
+		return "Telegram bot is not configured. Set telegram_bot_token in config.json."
+	}
+	if a.Config.TelegramChatID == 0 {
+		return "Telegram chat is not paired. Call telegram_start_pairing first."
+	}
+
+	if _, err := bot.SendMessage(a.Config.TelegramChatID, text); err != nil {
+		return "Could not send Telegram message: " + err.Error()
+	}
+	return "Telegram message sent successfully."
 }
 
 func RandomInt() string {

@@ -10,15 +10,15 @@ import (
 	"kilo-agent/tui"
 )
 
-func readSystemPrompt() (string, error) {
-	data, err := os.ReadFile("SYSTEM.md")
-	if err != nil {
-		return "", err
-	}
-	return string(data), nil
-}
-
 func main() {
+	if err := createConfig(); err != nil {
+		panic(err)
+	}
+	config, err := loadConfig()
+	if err != nil {
+		panic(err)
+	}
+
 	logFile, err := os.OpenFile("/tmp/kilo-agent.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
 		panic(err)
@@ -38,12 +38,12 @@ func main() {
 	}
 
 	tuiApp := tui.New(events)
-	if err := tuiApp.Init("qwen3:14b"); err != nil {
+	if err := tuiApp.Init("gemma4:12b"); err != nil {
 		panic(err)
 	}
 	defer tuiApp.Restore()
 
-	agent := NewAgent("Kilo Agent", systemPrompt)
+	agent := NewAgent(config, systemPrompt)
 	go agent.Run(reqChan, respChan)
 
 	go tuiApp.HandleInput()

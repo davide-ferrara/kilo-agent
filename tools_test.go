@@ -122,6 +122,201 @@ func TestWebSearchToolIsRegistered(t *testing.T) {
 	t.Fatal("web_search tool is not registered")
 }
 
+func TestTelegramIsBotConfiguredToolIsRegistered(t *testing.T) {
+	want := map[string]bool{
+		"telegram_is_bot_configured": false,
+		"telegram_start_pairing":     false,
+		"telegram_complete_pairing":  false,
+		"telegram_send_message":      false,
+	}
+
+	for _, tool := range RegisterTools() {
+		if _, ok := want[tool.Function.Name]; ok {
+			want[tool.Function.Name] = true
+		}
+	}
+	for name, registered := range want {
+		if !registered {
+			t.Errorf("%s tool is not registered", name)
+		}
+	}
+}
+
+func TestTelegramPairingAndSendMessage(t *testing.T) {
+	configRoot := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", configRoot)
+
+	agent := NewAgent(Config{
+		Name:             "test",
+		TelegramBotToken: "test-token",
+	}, "system")
+
+	const chatID int64 = 765046979
+	messageSent := false
+	agent.TelegramClient.Transport = roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		switch {
+		case strings.HasSuffix(req.URL.Path, "/getMe"):
+			return telegramToolHTTPResponse(`{
+				"ok": true,
+				"result": {
+					"id": 42,
+					"is_bot": true,
+					"first_name": "Test Bot",
+					"username": "test_bot"
+				}
+			}`), nil
+		case strings.HasSuffix(req.URL.Path, "/getUpdates"):
+			if agent.telegramStart == nil {
+				t.Fatal("getUpdates called without pending pairing state")
+			}
+			body := fmt.Sprintf(`{
+				"ok": true,
+				"result": [{
+					"update_id": 100,
+					"message": {
+						"message_id": 7,
+						"date": 123456,
+						"chat": {"id": %d, "type": "private"},
+						"text": "/start %d"
+					}
+				}]
+			}`, chatID, agent.telegramStart.Otp)
+			return telegramToolHTTPResponse(body), nil
+		case strings.HasSuffix(req.URL.Path, "/sendMessage"):
+			var payload struct {
+				ChatID int64  `json:"chat_id"`
+				Text   string `json:"text"`
+			}
+			if err := json.NewDecoder(req.Body).Decode(&payload); err != nil {
+				t.Fatalf("decode sendMessage payload: %v", err)
+			}
+			if payload.ChatID != chatID {
+				t.Errorf("sent chat ID = %d, want %d", payload.ChatID, chatID)
+			}
+			if payload.Text != "Ciao!" {
+				t.Errorf("sent text = %q, want %q", payload.Text, "Ciao!")
+			}
+			messageSent = true
+			return telegramToolHTTPResponse(fmt.Sprintf(`{
+				"ok": true,
+				"result": {
+					"message_id": 8,
+					"date": 123456,
+					"chat": {"id": %d, "type": "private"},
+					"text": "Ciao!"
+				}
+			}`, chatID)), nil
+		default:
+			t.Fatalf("unexpected Telegram request: %s", req.URL)
+			return nil, nil
+		}
+	})
+
+	startResult := agent.TelegramStartPairing()
+	if !strings.Contains(startResult, "https://t.me/test_bot?start=") {
+		t.Fatalf("TelegramStartPairing() = %q, want pairing link", startResult)
+	}
+
+	if got := agent.TelegramCompletePairing(); got != "Telegram chat paired successfully." {
+		t.Fatalf("TelegramCompletePairing() = %q", got)
+	}
+	if agent.Config.TelegramChatID != chatID {
+		t.Errorf("agent chat ID = %d, want %d", agent.Config.TelegramChatID, chatID)
+	}
+
+	saved, err := loadConfig()
+	if err != nil {
+		t.Fatalf("load saved config: %v", err)
+	}
+	if saved.TelegramChatID != chatID {
+		t.Errorf("saved chat ID = %d, want %d", saved.TelegramChatID, chatID)
+	}
+
+	if got := agent.TelegramSendMessage("Ciao!"); got != "Telegram message sent successfully." {
+		t.Fatalf("TelegramSendMessage() = %q", got)
+	}
+	if !messageSent {
+		t.Error("sendMessage request was not made")
+	}
+}
+
+func TestTelegramStartPairingReusesPendingLink(t *testing.T) {
+	agent := NewAgent(Config{
+		Name:             "test",
+		TelegramBotToken: "test-token",
+	}, "system")
+
+	getMeCalls := 0
+	agent.TelegramClient.Transport = roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		if !strings.HasSuffix(req.URL.Path, "/getMe") {
+			t.Fatalf("unexpected Telegram request: %s", req.URL)
+		}
+		getMeCalls++
+		return telegramToolHTTPResponse(`{
+			"ok": true,
+			"result": {
+				"id": 42,
+				"is_bot": true,
+				"first_name": "Test Bot",
+				"username": "test_bot"
+			}
+		}`), nil
+	})
+
+	first := agent.TelegramStartPairing()
+	if agent.telegramStart == nil {
+		t.Fatal("TelegramStartPairing() did not retain pairing state")
+	}
+	wantURL := agent.telegramStart.Url
+	second := agent.TelegramStartPairing()
+
+	if !strings.Contains(first, wantURL) || !strings.Contains(second, wantURL) {
+		t.Fatalf("pairing results do not contain the same link: first=%q second=%q", first, second)
+	}
+	if getMeCalls != 1 {
+		t.Errorf("getMe calls = %d, want 1", getMeCalls)
+	}
+}
+
+func telegramToolHTTPResponse(body string) *http.Response {
+	return &http.Response{
+		StatusCode: http.StatusOK,
+		Header:     make(http.Header),
+		Body:       io.NopCloser(strings.NewReader(body)),
+	}
+}
+
+func TestTelegramIsBotConfigured(t *testing.T) {
+	tests := []struct {
+		name  string
+		token string
+		want  string
+	}{
+		{
+			name:  "configured",
+			token: "test-token",
+			want:  "Telegram bot is configured and ready to use.",
+		},
+		{
+			name: "not configured",
+			want: "Telegram bot is not configured. Set telegram_bot_token in config.json.",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			agent := NewAgent(Config{
+				Name:             "test",
+				TelegramBotToken: tt.token,
+			}, "system")
+
+			if got := agent.TelegramIsBotConfigured(); got != tt.want {
+				t.Errorf("TelegramIsBotConfigured() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestWebSearchUsesNewsEndpoint(t *testing.T) {
 	var requestedPath string
 	client := &http.Client{Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
