@@ -2,6 +2,10 @@
   <img src="kilo-agent.png?v=2" alt="Kilo-Agent" width="80%" />
 </p>
 
+<p align="center">
+  <img src="kilo-agent-tg.png?v=1" alt="Kilo-Agent Telegram integration" width="80%" />
+</p>
+
 <h1 align="center">Kilo-Agent</h1>
 
 <p align="center">
@@ -13,6 +17,7 @@
   <img alt="License" src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" />
   <img alt="Dependencies" src="https://img.shields.io/badge/Dependencies-zero-brightgreen?style=flat-square" />
   <img alt="Status" src="https://img.shields.io/badge/Status-WIP-orange?style=flat-square" />
+  <img alt="Telegram Integration" src="https://img.shields.io/badge/Telegram-Integration-26A5E4?style=flat-square&logo=telegram&logoColor=white" />
   <img alt="Lang" src="https://img.shields.io/badge/Language-Golang-blue?style=flat-square&logo=go&logoColor=white" />
   <img alt="No deps" src="https://img.shields.io/badge/No%20deps-100%25-brightgreen?style=flat-square" />
   <img alt="Platform" src="https://img.shields.io/badge/Platform-Cross--platform-lightgrey?style=flat-square" />
