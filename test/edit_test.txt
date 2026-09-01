@@ -1,0 +1,48 @@
+Edit tool test file
+===================
+
+This file is used to test the opencode edit tool.
+
+Section 1 - Unique text
+-----------------------
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
+eiusmod tempor incididunt ut labore et dolore magna aliqua.
+
+This line is UNIQUE: UNIQUE_LINE_MARKER
+
+Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.
+
+Section 2 - Repeated text
+-------------------------
+
+This line repeats: REPEATED_LINE_MARKER
+This line repeats: REPEATED_LINE_MARKER
+This line repeats: REPEATED_LINE_MARKER
+
+Section 3 - Keywords
+--------------------
+
+- apple
+- banana
+- cherry
+
+Section 4 - Code blocks
+-----------------------
+
+func test1() {
+    return "hello"
+}
+
+func test2() {
+    return "hello"
+}
+
+Section 5 - Numbers
+-------------------
+
+100
+200
+300
+
+End of file.
