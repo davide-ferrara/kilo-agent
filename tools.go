@@ -315,6 +315,10 @@ func WriteFile(path string, content string) string {
 
 // FIX: This is not secure.
 func ExecCmd(name string, args ...string) string {
+	if name == "rm" {
+		return "Remove is forbidden for now."
+	}
+
 	allArgs := append([]string{"30", name}, args...)
 	cmd := exec.Command("timeout", allArgs...)
 	if errors.Is(cmd.Err, exec.ErrDot) {
