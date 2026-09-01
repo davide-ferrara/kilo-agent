@@ -1,11 +1,3 @@
-<p align="center">
-  <img src="kilo-agent.png?v=2" alt="Kilo-Agent" width="80%" />
-</p>
-
-<p align="center">
-  <img src="kilo-agent-tg.png?v=1" alt="Kilo-Agent Telegram integration" width="80%" />
-</p>
-
 <h1 align="center">Kilo-Agent</h1>
 
 <p align="center">
@@ -24,6 +16,14 @@
   <img alt="Made for" src="https://img.shields.io/badge/Made%20for-Learning-purple?style=flat-square" />
   <img alt="Code style" src="https://img.shields.io/badge/Code-Simple%20&%20Readable-ff69b4?style=flat-square" />
   <img alt="PRs" src="https://img.shields.io/badge/PRs-Welcome-brightgreen?style=flat-square" />
+</p>
+
+<p align="center">
+  <img src="kilo-agent.png?v=3" alt="Kilo-Agent" width="80%" />
+</p>
+
+<p align="center">
+  <img src="kilo-agent-tg.png?v=2" alt="Kilo-Agent Telegram integration" width="80%" />
 </p>
 
 ---
