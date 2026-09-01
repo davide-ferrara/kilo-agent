@@ -35,7 +35,35 @@ This aims to be a **mallable agent**:
 - **Extend** — add your own tools and skills
 - **Have fun** with it!
 
-## Build & Run
+## Install
+
+Build and install Kilo Agent to `~/.local/bin`:
+
+```bash
+make install
+```
+
+Make sure `~/.local/bin` is included in your `PATH`, then run it from anywhere:
+
+```bash
+kilo-agent
+```
+
+To install somewhere else, set `BINDIR`:
+
+```bash
+sudo make install BINDIR=/usr/local/bin
+```
+
+Use the same `BINDIR` value to uninstall it:
+
+```bash
+make uninstall
+# Or, for a custom installation directory:
+sudo make uninstall BINDIR=/usr/local/bin
+```
+
+## Build & Run From Source
 
 ```bash
 make build
@@ -43,6 +71,20 @@ make build
 ```
 
 That's it. No `go mod vendor`, no download bombs — just your machine and Go.
+
+## System Prompt
+
+Kilo Agent includes a default system prompt inside the executable. To replace
+it with your own instructions, create:
+
+```text
+~/.config/kilo-agent/SYSTEM.md
+```
+
+The contents of that file completely override the embedded `SYSTEM.md` the
+next time Kilo Agent starts. If `XDG_CONFIG_HOME` is set, use
+`$XDG_CONFIG_HOME/kilo-agent/SYSTEM.md` instead. Remove the override file to
+return to the embedded default.
 
 ## Terminal UI
 
