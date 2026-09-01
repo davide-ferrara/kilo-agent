@@ -25,7 +25,7 @@ func RegisterTools() []Tool {
 		Type: "function",
 		Function: ToolFunction{
 			Name:        "telegram_is_bot_configured",
-			Description: "Check whether a Telegram bot token is configured for the agent.",
+			Description: "Check whether the Telegram bot token and destination chat are configured. Use this before sending a Telegram message.",
 		},
 	}
 
@@ -185,7 +185,10 @@ func (a *Agent) TelegramIsBotConfigured() string {
 	if _, err := a.telegramBot(); err != nil {
 		return "Telegram bot is not configured. Set telegram_bot_token in config.json."
 	}
-	return "Telegram bot is configured and ready to use."
+	if a.Config.TelegramChatID == 0 {
+		return "Telegram bot token is configured, but no chat is paired. Call telegram_start_pairing."
+	}
+	return "Telegram bot and chat are configured and ready to use."
 }
 
 func (a *Agent) TelegramStartPairing() string {

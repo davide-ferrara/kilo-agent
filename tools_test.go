@@ -288,14 +288,21 @@ func telegramToolHTTPResponse(body string) *http.Response {
 
 func TestTelegramIsBotConfigured(t *testing.T) {
 	tests := []struct {
-		name  string
-		token string
-		want  string
+		name   string
+		token  string
+		chatID int64
+		want   string
 	}{
 		{
-			name:  "configured",
+			name:   "configured and paired",
+			token:  "test-token",
+			chatID: 765046979,
+			want:   "Telegram bot and chat are configured and ready to use.",
+		},
+		{
+			name:  "configured but not paired",
 			token: "test-token",
-			want:  "Telegram bot is configured and ready to use.",
+			want:  "Telegram bot token is configured, but no chat is paired. Call telegram_start_pairing.",
 		},
 		{
 			name: "not configured",
@@ -308,6 +315,7 @@ func TestTelegramIsBotConfigured(t *testing.T) {
 			agent := NewAgent(Config{
 				Name:             "test",
 				TelegramBotToken: tt.token,
+				TelegramChatID:   tt.chatID,
 			}, "system")
 
 			if got := agent.TelegramIsBotConfigured(); got != tt.want {
