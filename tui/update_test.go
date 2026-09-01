@@ -47,6 +47,23 @@ func TestResponseAndInputWordWrapping(t *testing.T) {
 	}
 }
 
+func TestEmojiPresentationDoesNotOverflowStyledToolLine(t *testing.T) {
+	const width = 40
+	lines := renderMessage(Message{MsgType: MsgTool, Data: "\u2708\ufe0f telegram_send_message"}, width)
+	if len(lines) != 1 {
+		t.Fatalf("tool call wrapped to %d lines", len(lines))
+	}
+	if got := visibleRuneCount(lines[0]); got != width {
+		t.Fatalf("styled tool width = %d, want %d", got, width)
+	}
+	if got := cellWidth("\u2708\ufe0f"); got != 2 {
+		t.Fatalf("emoji presentation width = %d, want 2", got)
+	}
+	if got := cellWidth("\U0001f3b2\ufe0f"); got != 2 {
+		t.Fatalf("already-wide emoji presentation width = %d, want 2", got)
+	}
+}
+
 func TestDiffLinesReceiveSemanticColors(t *testing.T) {
 	lines := renderMessage(Message{MsgType: MsgResponse, Data: "```diff\n-old\n+new\n```"}, 40)
 	if !strings.Contains(lines[1], themeRedDark) || !strings.Contains(lines[2], themeGreenDark) {

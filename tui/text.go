@@ -22,16 +22,32 @@ func runeWidth(r rune) int {
 	return 1
 }
 
+// runeCellWidths returns terminal-cell widths with the context needed for
+// emoji variation sequences. Some symbols (for example U+2708 AIRPLANE) are
+// one cell as text, but terminals render "\u2708\ufe0f" as a two-cell emoji. A
+// rune-at-a-time width calculation misses that extra cell and pads a styled
+// line past the terminal edge.
+func runeCellWidths(runes []rune) []int {
+	widths := make([]int, len(runes))
+	for index, r := range runes {
+		widths[index] = runeWidth(r)
+		if r == '\ufe0f' && index > 0 && widths[index-1] == 1 {
+			widths[index-1] = 2
+		}
+	}
+	return widths
+}
+
 func cellWidth(text string) int {
 	width := 0
-	for _, r := range text {
-		width += runeWidth(r)
+	for _, cells := range runeCellWidths([]rune(text)) {
+		width += cells
 	}
 	return width
 }
 
 func visibleRuneCount(text string) int {
-	width := 0
+	var visible strings.Builder
 	inEscape := false
 	for _, r := range text {
 		if r == '\x1b' {
@@ -44,9 +60,9 @@ func visibleRuneCount(text string) int {
 			}
 			continue
 		}
-		width += runeWidth(r)
+		visible.WriteRune(r)
 	}
-	return width
+	return cellWidth(visible.String())
 }
 
 func hardWrap(text string, width int) []string {
@@ -56,14 +72,16 @@ func hardWrap(text string, width int) []string {
 	var lines []string
 	var line strings.Builder
 	column := 0
-	for _, r := range text {
+	runes := []rune(text)
+	widths := runeCellWidths(runes)
+	for index, r := range runes {
 		if r == '\n' {
 			lines = append(lines, line.String())
 			line.Reset()
 			column = 0
 			continue
 		}
-		cells := runeWidth(r)
+		cells := widths[index]
 		if column > 0 && column+cells > width {
 			lines = append(lines, line.String())
 			line.Reset()
@@ -120,8 +138,10 @@ func truncateCells(text string, width int) string {
 	}
 	var b strings.Builder
 	used := 0
-	for _, r := range text {
-		cells := runeWidth(r)
+	runes := []rune(text)
+	widths := runeCellWidths(runes)
+	for index, r := range runes {
+		cells := widths[index]
 		if used+cells > width-1 {
 			break
 		}

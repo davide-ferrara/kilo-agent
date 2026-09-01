@@ -167,6 +167,7 @@ type cursorPoint struct {
 func cursorPositions(text []rune, width int) []cursorPoint {
 	width = max(width, 1)
 	positions := make([]cursorPoint, len(text)+1)
+	widths := runeCellWidths(text)
 	row, column := 0, 0
 	wrapped := false
 	for i, r := range text {
@@ -179,7 +180,7 @@ func cursorPositions(text []rune, width int) []cursorPoint {
 			positions[i+1] = cursorPoint{row: row, column: column}
 			continue
 		}
-		cells := runeWidth(r)
+		cells := widths[i]
 		if column > 0 && column+cells > width {
 			row++
 			column = 0
